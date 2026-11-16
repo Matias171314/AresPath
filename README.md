@@ -29,7 +29,7 @@ source .venv/bin/activate
 make install
 ```
 
-On Windows, activate the environment with `.venv\\Scripts\\activate`.
+On Windows PowerShell, activate the environment with `& .\\.venv\\Scripts\\Activate.ps1`.
 
 ### Run the app
 
