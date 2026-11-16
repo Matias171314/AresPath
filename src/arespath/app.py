@@ -4,11 +4,49 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
 from arespath.planner import astar
 from arespath.terrain import create_demo_terrain, slope_degrees, traversal_cost
+
+
+def _unblocked_grid(cost_grid: np.ndarray) -> np.ndarray:
+    """Use uniform cost for the shortest-distance baseline."""
+    return np.where(np.isfinite(cost_grid), 1.0, np.inf)
+
+
+def _format_distance(path: list[tuple[int, int]], cell_size: float) -> str:
+    if len(path) < 2:
+        return "—"
+    distance = sum(
+        math.dist(first, second) * cell_size
+        for first, second in zip(path, path[1:])
+    )
+    return f"{distance / 1000.0:.2f} km"
+
+
+def _add_path(
+    figure: go.Figure,
+    path: list[tuple[int, int]],
+    cell_size: float,
+    name: str,
+    color: str,
+) -> None:
+    if not path:
+        return
+    figure.add_trace(
+        go.Scatter(
+            x=[point[1] * cell_size for point in path],
+            y=[point[0] * cell_size for point in path],
+            mode="lines",
+            line={"width": 3, "color": color},
+            name=name,
+            hoverinfo="skip",
+        )
+    )
+
 
 st.set_page_config(page_title="AresPath", page_icon="🔴", layout="wide")
 st.title("AresPath")
@@ -30,24 +68,23 @@ with st.sidebar:
 start = (int(start_row), int(start_col))
 goal = (int(goal_row), int(goal_col))
 risk_cost = traversal_cost(slopes, max_slope, slope_weight)
-shortest_path, shortest_cost = astar(
-    _unblocked_grid(risk_cost),
-    start,
-    goal,
-)
+shortest_path, shortest_cost = astar(_unblocked_grid(risk_cost), start, goal)
 safe_path, safe_cost = astar(risk_cost, start, goal)
 
 left, right = st.columns(2)
 left.metric("Shortest route", _format_distance(shortest_path, cell_size_m))
 right.metric("Slope-aware route", _format_distance(safe_path, cell_size_m))
 
+axis_m = np.arange(elevation.shape[0]) * cell_size_m
 fig = go.Figure()
 fig.add_trace(
     go.Heatmap(
+        x=axis_m,
+        y=axis_m,
         z=slopes,
         colorscale="Turbo",
         colorbar={"title": "Slope (°)"},
-        hovertemplate="row=%{y}<br>column=%{x}<br>slope=%{z:.1f}°<extra></extra>",
+        hovertemplate="east=%{x:.0f} m<br>north=%{y:.0f} m<br>slope=%{z:.1f}°<extra></extra>",
     )
 )
 _add_path(fig, shortest_path, cell_size_m, "Shortest", "#44d9e6")
@@ -59,7 +96,11 @@ fig.add_trace(
         mode="markers+text",
         text=["START", "GOAL"],
         textposition="top center",
-        marker={"size": 12, "color": ["#ffffff", "#ffe66d"], "line": {"width": 2, "color": "#171923"}},
+        marker={
+            "size": 12,
+            "color": ["#ffffff", "#ffe66d"],
+            "line": {"width": 2, "color": "#171923"},
+        },
         name="Waypoints",
     )
 )
@@ -91,34 +132,3 @@ st.info(
     "Prototype note: this view uses a synthetic elevation grid. "
     "It is not a NASA hazard map and does not assess real rover safety."
 )
-
-
-def _unblocked_grid(cost_grid):
-    """Use uniform cost for the shortest-distance baseline."""
-    import numpy as np
-
-    return np.where(np.isfinite(cost_grid), 1.0, np.inf)
-
-
-def _format_distance(path, cell_size):
-    if len(path) < 2:
-        return "—"
-    distance = 0.0
-    for first, second in zip(path, path[1:]):
-        distance += math.dist(first, second) * cell_size
-    return f"{distance / 1000.0:.2f} km"
-
-
-def _add_path(figure, path, cell_size, name, color):
-    if not path:
-        return
-    figure.add_trace(
-        go.Scatter(
-            x=[point[1] * cell_size for point in path],
-            y=[point[0] * cell_size for point in path],
-            mode="lines",
-            line={"width": 3, "color": color},
-            name=name,
-            hoverinfo="skip",
-        )
-    )
