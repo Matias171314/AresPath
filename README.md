@@ -13,8 +13,8 @@ The project is inspired by NASA Space Apps' **Interplanetary Survival Guide: Mar
 - Generate a deterministic, crater-like demo terrain.
 - Estimate terrain slope from an elevation grid.
 - Mark cells above a configurable slope threshold as blocked.
-- Compare shortest-distance and slope-aware routes.
-- Visualize both paths and inspect route distance and accumulated cost.
+- Compare shortest-distance and slope-aware routes using A*.
+- Visualize both paths on a slope map and inspect route distance and cost.
 - Run the path planner tests locally.
 
 ## Instructions
@@ -47,7 +47,7 @@ make test
 
 ## Planning model
 
-The terrain is represented as a regular grid. Each cell has an elevation and a derived slope. A cell above the selected slope limit is treated as blocked. A* searches the grid using either uniform cost (shortest route) or a slope-weighted traversal cost (terrain-aware route).
+The terrain is represented as a regular grid. Each cell has an elevation and a derived slope. Cells above the selected slope limit are treated as blocked. A* searches the grid using either uniform cost (shortest route) or a slope-weighted traversal cost (terrain-aware route).
 
 The terrain-aware cost is a heuristic for demonstration. It is not an official hazard map or a safety assessment for a real rover.
 
